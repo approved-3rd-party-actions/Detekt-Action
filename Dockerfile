@@ -1,25 +1,22 @@
-FROM alpine:3.13.1
+FROM alpine:latest
 
 # https://github.com/detekt/detekt/releases
-ARG DETEKT_VERSION="1.23.1"
+#ARG DETEKT_VERSION="1.23.1"
 # https://github.com/reviewdog/reviewdog/releases
-ARG REVIEWDOG_VERSION="0.14.1"
+ARG REVIEWDOG_VERSION="master"
 
-ARG DETEKT_FILE_NAME="detekt-cli-${DETEKT_VERSION}-all.jar"
-ARG DETEKT_URL="https://github.com/detekt/detekt/releases/download/v${DETEKT_VERSION}/${DETEKT_FILE_NAME}"
-
-ARG DETEKT_FORMATTING_FILE_NAME="detekt-formatting-${DETEKT_VERSION}.jar"
-ARG DETEKT_FORMATTING_URL="https://github.com/detekt/detekt/releases/download/v${DETEKT_VERSION}/${DETEKT_FORMATTING_FILE_NAME}"
-
-RUN apk --no-cache --update add git curl openjdk11 bash \
+RUN apk --no-cache --update add git openjdk11 bash \
     && rm -rf /var/cache/apk/*
 
-RUN wget -O - -q https://raw.githubusercontent.com/reviewdog/reviewdog/v${REVIEWDOG_VERSION}/install.sh | sh -s -- -b /usr/local/bin/
-RUN curl -sSLO $DETEKT_URL \
-    && mv $DETEKT_FILE_NAME /opt/detekt.jar
+RUN DETEKT_VERSION=$(wget -qO - https://github.com/detekt/detekt/releases/latest|cat -|grep "<title>Release"|awk '{print $2}'|cut -dv -f2) \
+ && DETEKT_FILE_NAME="detekt-cli-${DETEKT_VERSION}-all.jar" \
+ && DETEKT_URL="https://github.com/detekt/detekt/releases/download/v${DETEKT_VERSION}/${DETEKT_FILE_NAME}" \
+ && DETEKT_FORMATTING_FILE_NAME="detekt-formatting-${DETEKT_VERSION}.jar" \
+ && DETEKT_FORMATTING_URL="https://github.com/detekt/detekt/releases/download/v${DETEKT_VERSION}/${DETEKT_FORMATTING_FILE_NAME}" \
+ && wget -O /opt/detekt.jar -q ${DETEKT_URL} \
+ && wget -O /opt/detekt-formatting.jar -q ${DETEKT_FORMATTING_URL}
 
-RUN curl -sSLO $DETEKT_FORMATTING_URL \
-    && mv $DETEKT_FORMATTING_FILE_NAME /opt/detekt-formatting.jar
+RUN wget -O - -q https://raw.githubusercontent.com/reviewdog/reviewdog/${REVIEWDOG_VERSION}/install.sh | sh -s -- -b /usr/local/bin/
 
 COPY entrypoint.sh /entrypoint.sh
 
